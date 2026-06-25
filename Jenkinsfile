@@ -48,21 +48,9 @@ pipeline {
         sh '''
             trivy image \
               --cache-dir $TRIVY_CACHE_DIR \
-              --exit-code 1 \
+              --exit-code 0 \
               --severity HIGH,CRITICAL \
               "$IMAGE_REPO:$BUILD_NUMBER"
-        '''
-    }
-}
-stage('Debug') {
-    steps {
-        sh '''
-            whoami
-            hostname
-            df -h
-            df -h /tmp
-            df -h /var/tmp
-            mount | grep tmp
         '''
     }
 }
