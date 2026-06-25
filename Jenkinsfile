@@ -7,13 +7,21 @@ pipeline {
     SONAR_IP = '172.31.11.106'
     ECR_REGISTRY = '651447471372.dkr.ecr.ap-south-1.amazonaws.com'
     IMAGE_REPO = "$ECR_REGISTRY/devsecops-demo"
+    TRIVY_CACHE_DIR = '/var/lib/trivy'
+    TMPDIR = '/var/tmp'
   }
   stages {
-    stage('Trivy FS scan') {
-      steps {
-        sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL .'
-      }
+  stage('Trivy FS scan') {
+    steps {
+        sh '''
+            trivy fs \
+              --cache-dir $TRIVY_CACHE_DIR \
+              --exit-code 1 \
+              --severity HIGH,CRITICAL \
+              .
+        '''
     }
+}
     stage('Build & Sonar') {
       steps {
         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
@@ -35,10 +43,28 @@ pipeline {
           sh 'export DOCKER_BUILDKIT=0 && docker build --platform linux/amd64 -t "$IMAGE_REPO:$BUILD_NUMBER" -t "$IMAGE_REPO:latest" .'
       }
     }
-    stage('Trivy Image Scan') {
-      steps {
-        sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL "$IMAGE_REPO:$BUILD_NUMBER"'
-      }
+  stage('Trivy Image Scan') {
+    steps {
+        sh '''
+            trivy image \
+              --cache-dir $TRIVY_CACHE_DIR \
+              --exit-code 1 \
+              --severity HIGH,CRITICAL \
+              "$IMAGE_REPO:$BUILD_NUMBER"
+        '''
+    }
+}
+stage('Debug') {
+    steps {
+        sh '''
+            whoami
+            hostname
+            df -h
+            df -h /tmp
+            df -h /var/tmp
+            mount | grep tmp
+        '''
+    }
 }
   }
 }
